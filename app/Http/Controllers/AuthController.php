@@ -22,7 +22,6 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6|confirmed',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'bio' => 'nullable|string|max:500'
         ]);
 
         $user = User::create([
@@ -39,7 +38,6 @@ class AuthController extends Controller
         Profile::create([
             'user_id' => $user->id,
             'avatar' => $avatarPath,
-            'bio' => $validated['bio'] ?? null
         ]);
 
         auth()->login($user);
