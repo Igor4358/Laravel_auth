@@ -75,6 +75,25 @@
         .login-link {
             margin-top: 15px;
         }
+        .nav-links {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .nav-links a {
+            display: inline-block;
+            width: 300px;
+            margin:  10px;
+            padding: 10px 20px;
+            background: #007bff;
+            margin-left: 0;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .nav-links a:hover {
+            background: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -128,6 +147,9 @@
 
     <div class="login-link">
         <a href="{{ route('login.view') }}" class="login-btn">Уже есть аккаунт? Войдите</a>
+    </div>
+    <div class="nav-links">
+        <a href="{{ route('search') }}">Поиск пользователей</a>
     </div>
 </div>
 </body>
