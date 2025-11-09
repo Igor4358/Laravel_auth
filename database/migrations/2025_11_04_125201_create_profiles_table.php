@@ -10,9 +10,8 @@ return new class extends Migration
     {
         Schema::create('profiles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Эта строка ОБЯЗАТЕЛЬНА
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('avatar')->nullable();
-            $table->text('bio')->nullable();
             $table->timestamps();
         });
     }
