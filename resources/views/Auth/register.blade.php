@@ -101,7 +101,10 @@
     <h2>Регистрация</h2>
 
     @if(session('success'))
-        <div class="success">{{ session('success') }}</div>
+        <div class="success">
+            {{ session('success') }}
+            <br><small>Проверьте вашу почту для получения приветственного письма</small>
+        </div>
     @endif
 
     <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">

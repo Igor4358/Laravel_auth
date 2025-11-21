@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Profile;
 use App\Models\User;
+use App\Jobs\MailSendJob;
+use App\Jobs\VerifyMailSendJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -40,7 +42,9 @@ class AuthController extends Controller
             'avatar' => $avatarPath,
         ]);
 
+        MailSendJob::dispatch($user);
+
         auth()->login($user);
-        return redirect('/dashboard')->with('success', 'Регистрация прошла успешно!');
+        return redirect('/dashboard')->with('success', 'Регистрация прошла успешно! На вашу почту отправлено письмо.!');
     }
 }

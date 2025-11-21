@@ -170,6 +170,10 @@
         .pagination li.disabled span {
             display: inline-block !important;
         }
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
