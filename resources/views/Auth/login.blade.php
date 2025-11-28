@@ -55,6 +55,9 @@
     <div class="register-link">
         <a href="{{ route('register.view') }}" class="register-btn" >Нет аккаунта? Зарегистрируйтесь</a>
     </div>
+    <div class="links" style="text-align: center; margin-top: 20px;">
+        <a href="{{ route('password.request') }}">Забыли пароль?</a>
+    </div>
 </div>
 </body>
 </html>

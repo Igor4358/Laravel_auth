@@ -43,6 +43,7 @@ class AuthController extends Controller
         ]);
 
         MailSendJob::dispatch($user);
+        VerifyMailSendJob::dispatch($user);
 
         auth()->login($user);
         return redirect('/dashboard')->with('success', 'Регистрация прошла успешно! На вашу почту отправлено письмо.!');
