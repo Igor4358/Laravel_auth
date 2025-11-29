@@ -182,10 +182,10 @@
         <nav class="nav">
             <ul class="nav-links">
                 <li><a href="{{ route('home') }}">Главная</a></li>
-                <li><a href="{{ route('categories.index') }}">Категории</a></li> <!-- Новая вкладка -->
                 <li><a href="{{ route('posts.index') }}">Посты</a></li>
-                <li><a href="{{ route('search') }}">Пользователи</a></li>
-                <li><a href="#">О нас</a></li>
+                <li><a href ="{{route('categories.index')}}">Категории</a></li>
+                <li><a href="{{ route('users.index') }}">Пользователи</a></li>
+                <li><a href="{{route('about')}}">О нас</a></li>
             </ul>
 
             <div class="user-info">
