@@ -25,5 +25,14 @@
 
         <button type="submit" class="btn btn-success">Создать пост</button>
         <a href="{{ route('posts.index') }}" class="btn btn-primary">Назад к постам</a>
+        <div class="form-group">
+            <label for="category_id">Категория:</label>
+            <select id="category_id" name="category_id" class="form-control">
+                <option value="">Без категории</option>
+                @foreach($categories as $category)
+                    @include('categories.partials.option', ['category' => $category, 'level' => 0])
+                @endforeach
+            </select>
+        </div>
     </form>
 @endsection

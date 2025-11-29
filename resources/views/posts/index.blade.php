@@ -19,6 +19,15 @@
                     <div class="post-meta">
                         Автор: {{ $post->user->name }} |
                         {{ $post->created_at->format('d.m.Y H:i') }}
+                        @if($post->category)
+                            | Категория:
+                            <a href="{{ route('categories.show', $post->category->slug) }}"
+                               style="color: #007bff; text-decoration: none;">
+                                {{ $post->category->name }}
+                            </a>
+                        @else
+                            | Без категории
+                        @endif
                         @if($post->updated_at != $post->created_at)
                             (изменен: {{ $post->updated_at->format('d.m.Y H:i') }})
                         @endif

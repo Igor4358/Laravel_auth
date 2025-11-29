@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LoginController;
@@ -38,6 +39,10 @@ Route::get('/users', [UserController::class, 'index'])->name('users.index');
 Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
 Route::get('/search-ajax', [SearchController::class, 'searchAjax'])->name('search.ajax');
 Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('comments.store');
+
+// Категории (доступны всем)
+Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
 // Защищенные маршруты (только для авторизованных)
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {

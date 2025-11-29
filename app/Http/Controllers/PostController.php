@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -12,12 +13,14 @@ class PostController extends Controller
     {
         $posts = Post::with('user')->latest()->Paginate(5);
       //  $posts = Post::with('user')->latest()->get();
-        return view('posts.index', compact('posts'));
+        $categories = Category::getTree();
+        return view('posts.index', compact('posts', 'categories'));
     }
 
     public function create()
     {
-        return view('posts.create');
+        $categories = Category::getTree();
+        return view('posts.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -25,6 +28,7 @@ class PostController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
+            'category_id' => 'nullable|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
@@ -35,6 +39,7 @@ class PostController extends Controller
 
         Post::create([
             'user_id' => auth()->id(),
+            'category_id' => $validated['category_id'],
             'title' => $validated['title'],
             'content' => $validated['content'],
             'image' => $imagePath
@@ -45,7 +50,6 @@ class PostController extends Controller
 
     public function edit(Post $post)
     {
-        // Проверяем, что пользователь может редактировать только свои посты
         if ($post->user_id !== auth()->id()) {
             abort(403);
         }
@@ -62,6 +66,7 @@ class PostController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
+            'category_id' => 'nullable|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
@@ -77,6 +82,7 @@ class PostController extends Controller
         $post->update([
             'title' => $validated['title'],
             'content' => $validated['content'],
+            'category_id' => $validated['category_id'],
             'image' => $imagePath
         ]);
 
