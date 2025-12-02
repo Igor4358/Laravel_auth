@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class Category extends Model
 {
@@ -17,31 +18,26 @@ class Category extends Model
         'order'
     ];
 
-    // Родительская категория
     public function parent()
     {
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    // Дочерние категории
     public function children()
     {
         return $this->hasMany(Category::class, 'parent_id')->orderBy('order');
     }
 
-    // Посты в этой категории
     public function posts()
     {
         return $this->hasMany(Post::class);
     }
 
-    // Рекурсивное получение всех дочерних категорий
     public function allChildren()
     {
         return $this->children()->with('allChildren');
     }
 
-    // Рекурсивное получение всех постов в категории и подкатегориях
     public function getAllPosts()
     {
         $posts = $this->posts;
@@ -53,7 +49,6 @@ class Category extends Model
         return $posts;
     }
 
-    // Получение полного пути категории
     public function getFullPath()
     {
         $path = collect([$this]);
@@ -67,12 +62,36 @@ class Category extends Model
         return $path;
     }
 
-    // Получение дерева категорий
+    /**
+     * Получение дерева категорий с кэшированием
+     */
     public static function getTree()
     {
-        return static::with('allChildren')
-            ->whereNull('parent_id')
-            ->orderBy('order')
-            ->get();
+        return Cache::remember('categories.tree', 3600, function () { // Кэш на 1 час
+            return static::with('allChildren')
+                ->whereNull('parent_id')
+                ->orderBy('order')
+                ->get();
+        });
+    }
+
+    /**
+     * Получение всех категорий с кэшированием
+     */
+    public static function getAllCached()
+    {
+        return Cache::remember('categories.all', 3600, function () {
+            return static::with('parent', 'children')->get();
+        });
+    }
+
+    /**
+     * Получение количества постов в категории с кэшированием
+     */
+    public function getPostsCountAttribute()
+    {
+        return Cache::remember("category.{$this->id}.posts_count", 1800, function () { // 30 минут
+            return $this->getAllPosts()->count();
+        });
     }
 }

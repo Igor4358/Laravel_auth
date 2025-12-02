@@ -12,8 +12,8 @@ class CategoryController extends Controller
     {
         $category = Category::where('slug', $slug)->firstOrFail();
 
-        $posts = $category->getAllPosts()->load('user', 'category', 'comments');
-
+        // Используем кэшированные посты
+        $posts = $category->getAllPosts()->load('user', 'category', 'comments.user');
         $categories = Category::getTree();
 
         return view('categories.show', compact('category', 'posts', 'categories'));
@@ -21,8 +21,9 @@ class CategoryController extends Controller
 
     public function index()
     {
+        // Используем кэшированные данные
         $categories = Category::getTree();
-        $posts = Post::with('user', 'category', 'comments')->latest()->get();
+        $posts = Post::getAllCached();
 
         return view('categories.index', compact('categories', 'posts'));
     }

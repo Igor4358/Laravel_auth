@@ -11,9 +11,13 @@ class PostController extends Controller
 {
     public function index()
     {
-        $posts = Post::with('user')->latest()->Paginate(5);
-      //  $posts = Post::with('user')->latest()->get();
+        // Используем пагинацию с загрузкой комментариев и их авторов
+        $posts = Post::with(['user', 'category', 'comments.user'])
+        ->latest()
+            ->paginate(10);
+
         $categories = Category::getTree();
+
         return view('posts.index', compact('posts', 'categories'));
     }
 
@@ -37,6 +41,7 @@ class PostController extends Controller
             $imagePath = $request->file('image')->store('posts', 'public');
         }
 
+        // Создание поста автоматически вызовет Observer
         Post::create([
             'user_id' => auth()->id(),
             'category_id' => $validated['category_id'],
@@ -51,10 +56,13 @@ class PostController extends Controller
     public function edit(Post $post)
     {
         if ($post->user_id !== auth()->id()) {
-            abort(403);
+            abort(403, 'У вас нет прав для редактирования этого поста');
         }
 
-        return view('posts.edit', compact('post'));
+        // Добавляем загрузку категорий
+        $categories = Category::getTree();
+
+        return view('posts.edit', compact('post', 'categories'));
     }
 
     public function update(Request $request, Post $post)
