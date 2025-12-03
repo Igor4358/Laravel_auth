@@ -6,6 +6,7 @@ use App\Models\Post;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class PostController extends Controller
 {
@@ -29,6 +30,8 @@ class PostController extends Controller
 
     public function store(Request $request)
     {
+        Log::info('Post creation attempt', ['user_id' => auth()->id(), 'title' => $request->title]);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
@@ -39,6 +42,8 @@ class PostController extends Controller
         $imagePath = null;
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('posts', 'public');
+
+            Log::info('Post image uploaded', ['path' => $imagePath]);
         }
 
         // Создание поста автоматически вызовет Observer
@@ -93,7 +98,7 @@ class PostController extends Controller
             'category_id' => $validated['category_id'],
             'image' => $imagePath
         ]);
-
+        Log::info('Post update attempt', ['post_id' => $post->id, 'user_id' => auth()->id()]);
         return redirect()->route('posts.index')->with('success', 'Пост обновлен успешно!');
     }
     public function show(Post $post)
@@ -106,14 +111,14 @@ class PostController extends Controller
         if ($post->user_id !== auth()->id()) {
             abort(403);
         }
-
+        Log::info('Post deletion attempt', ['post_id' => $post->id, 'user_id' => auth()->id()]);
         // Удаляем изображение
         if ($post->image) {
             Storage::disk('public')->delete($post->image);
         }
 
         $post->delete();
-
+        Log::info('Post deleted', ['post_id' => $post->id, 'user_id' => auth()->id()]);
         return redirect()->route('posts.index')->with('success', 'Пост удален успешно!');
     }
 }
