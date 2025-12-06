@@ -44,7 +44,7 @@
                 </div>
 
                 @auth
-                    @if($post->user_id == auth()->id())
+                    @if(auth()->check() && (auth()->user()->id == $post->user_id || auth()->user()->isAdmin()))
                         <div class="post-actions">
                             <a href="{{ route('posts.edit', $post) }}" class="btn btn-primary">Редактировать</a>
                             <form method="POST" action="{{ route('posts.destroy', $post) }}">

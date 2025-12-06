@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -13,21 +14,33 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::with(['profile', 'posts'])->get();
+        // Проверяем авторизацию и права админа в методе
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'Требуются права администратора');
+        }
+
+        $users = User::with(['posts', 'comments'])->latest()->get();
         return view('users.index', compact('users'));
     }
 
     public function show(User $user)
     {
-        $user->load(['profile', 'posts']);
-        return view('users.show', compact('user'));
+        $posts = $user->posts()->with('category')->latest()->paginate(10);
+        $comments = $user->comments()->with('post')->latest()->paginate(10);
+
+        return view('users.show', compact('user', 'posts', 'comments'));
     }
 
     public function profile()
     {
+        if (!Auth::check()) {
+            return redirect()->route('login.view');
+        }
+
         $user = Auth::user();
-        $user->load('profile');
-        return view('users.profile', compact('user'));
+        $posts = $user->posts()->with('category')->latest()->paginate(10);
+
+        return view('users.profile', compact('user', 'posts'));
     }
 
     public function updateProfile(Request $request)
@@ -46,45 +59,61 @@ class UserController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Обновляем основные данные пользователя
-        $user->update([
+        $updateData = [
             'name' => $request->name,
             'email' => $request->email,
-        ]);
+        ];
 
-        // Обновляем пароль если указан
         if ($request->filled('password')) {
-            $user->update([
-                'password' => Hash::make($request->password)
-            ]);
+            $updateData['password'] = Hash::make($request->password);
         }
 
-        // Обработка аватарки
-        $avatarPath = null;
-        if ($request->hasFile('avatar')) {
-            // Удаляем старую аватарку если есть
-            if ($user->profile && $user->profile->avatar) {
-                Storage::disk('public')->delete($user->profile->avatar);
+        // Обновляем профиль
+        if ($user->profile) {
+            $profileData = ['bio' => $request->bio ?? null];
+
+            // Обработка аватарки
+            if ($request->hasFile('avatar')) {
+                if ($user->profile->avatar) {
+                    Storage::disk('public')->delete($user->profile->avatar);
+                }
+
+                $avatarPath = $request->file('avatar')->store('avatars', 'public');
+                $profileData['avatar'] = $avatarPath;
             }
 
-            // Сохраняем новую аватарку
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            $user->profile()->update($profileData);
         }
 
-        // Обновляем или создаем профиль
-        if ($user->profile) {
-            $user->profile->update([
-                'avatar' => $avatarPath ?: $user->profile->avatar,
-                'bio' => $request->bio ?: $user->profile->bio
-            ]);
-        } else {
-            $user->profile()->create([
-                'avatar' => $avatarPath,
-                'bio' => $request->bio
-            ]);
-        }
+        $user->update($updateData);
+
+        Log::info('Profile updated', ['user_id' => $user->id]);
 
         return redirect()->route('user.profile')->with('success', 'Профиль успешно обновлен!');
+    }
+
+    public function updateRole(Request $request, User $user)
+    {
+        // Дополнительная проверка (middleware уже проверил, но на всякий случай)
+        if (!Auth::user()->isAdmin()) {
+            abort(403, 'Требуются права администратора');
+        }
+
+        $request->validate([
+            'role' => 'required|in:admin,user'
+        ]);
+
+        $oldRole = $user->role;
+        $user->update(['role' => $request->role]);
+
+        Log::info('User role updated', [
+            'user_id' => $user->id,
+            'old_role' => $oldRole,
+            'new_role' => $request->role,
+            'updated_by' => Auth::id()
+        ]);
+
+        return redirect()->back()->with('success', 'Роль пользователя обновлена!');
     }
 
     public function removeAvatar()
@@ -92,13 +121,12 @@ class UserController extends Controller
         $user = Auth::user();
 
         if ($user->profile && $user->profile->avatar) {
-            // Удаляем файл аватарки
             Storage::disk('public')->delete($user->profile->avatar);
+            $user->profile()->update(['avatar' => null]);
 
-            // Обновляем профиль
-            $user->profile->update(['avatar' => null]);
+            Log::info('Avatar removed', ['user_id' => $user->id]);
         }
 
-        return redirect()->route('user.profile')->with('success', 'Аватарка успешно удалена!');
+        return redirect()->route('user.profile')->with('success', 'Аватар успешно удален!');
     }
 }

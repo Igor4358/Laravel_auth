@@ -14,11 +14,35 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'role'
     ];
 
     protected $hidden = [
         'password',
     ];
+
+    // Проверка ролей
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
+    }
+
+    // Scope для админов
+    public function scopeAdmins($query)
+    {
+        return $query->where('role', 'admin');
+    }
+
+    // Scope для обычных пользователей
+    public function scopeUsers($query)
+    {
+        return $query->where('role', 'user');
+    }
 
     public function profile()
     {

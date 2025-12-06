@@ -14,7 +14,6 @@ class AppServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
-
         Post::observe(PostObserver::class);
         Comment::observe(CommentObserver::class);
         Category::observe(CategoryObserver::class);

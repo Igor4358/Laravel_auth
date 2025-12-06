@@ -2,123 +2,121 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PostStoreRequest;
 use App\Models\Post;
-use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
+use App\Repository\CategoryRepository;
+use App\Repository\PostRepository;
+use App\Service\PostService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
-    public function index()
+    private const PER_PAGE_ITEMS = 10;
+
+    private PostRepository $postRepository;
+    private CategoryRepository $categoryRepository;
+    private PostService $postService;
+
+    // Убираем конструктор с dependency injection
+    // Вместо этого используем сервис контейнер Laravel
+
+    private function getPostRepository(): PostRepository
     {
-        // Используем пагинацию с загрузкой комментариев и их авторов
-        $posts = Post::with(['user', 'category', 'comments.user'])
-        ->latest()
-            ->paginate(10);
-
-        $categories = Category::getTree();
-
-        return view('posts.index', compact('posts', 'categories'));
-    }
-
-    public function create()
-    {
-        $categories = Category::getTree();
-        return view('posts.create', compact('categories'));
-    }
-
-    public function store(Request $request)
-    {
-        Log::info('Post creation attempt', ['user_id' => auth()->id(), 'title' => $request->title]);
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'category_id' => 'nullable|exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
-
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('posts', 'public');
-
-            Log::info('Post image uploaded', ['path' => $imagePath]);
+        if (!isset($this->postRepository)) {
+            $this->postRepository = app(PostRepository::class);
         }
-
-        // Создание поста автоматически вызовет Observer
-        Post::create([
-            'user_id' => auth()->id(),
-            'category_id' => $validated['category_id'],
-            'title' => $validated['title'],
-            'content' => $validated['content'],
-            'image' => $imagePath
-        ]);
-
-        return redirect()->route('posts.index')->with('success', 'Пост создан успешно!');
+        return $this->postRepository;
     }
 
-    public function edit(Post $post)
+    private function getCategoryRepository(): CategoryRepository
     {
-        if ($post->user_id !== auth()->id()) {
+        if (!isset($this->categoryRepository)) {
+            $this->categoryRepository = app(CategoryRepository::class);
+        }
+        return $this->categoryRepository;
+    }
+
+    private function getPostService(): PostService
+    {
+        if (!isset($this->postService)) {
+            $this->postService = app(PostService::class);
+        }
+        return $this->postService;
+    }
+
+    public function index(): View
+    {
+        return view('posts.index', [
+            'posts' => $this->getPostRepository()->getAllPaginated(self::PER_PAGE_ITEMS),
+            'categories' => $this->getCategoryRepository()->getAllChildren()
+        ]);
+    }
+
+    public function create(): View
+    {
+        return view('posts.create', [
+            'categories' => $this->getCategoryRepository()->getAllChildren()
+        ]);
+    }
+
+    public function store(PostStoreRequest $request): RedirectResponse
+    {
+        $this->getPostRepository()->store($request);
+
+        return redirect()
+            ->route('posts.index')
+            ->with('success', 'Пост успешно создан!');
+    }
+
+    public function show(Post $post): View
+    {
+        $postData = $this->getPostRepository()->show($post);
+
+        return view('posts.show', array_merge($postData, [
+            'latestPosts' => $this->getPostService()->getLatestPosts(5)
+        ]));
+    }
+
+    public function edit(Post $post): View
+    {
+        // Проверка прав
+        if ($post->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'У вас нет прав для редактирования этого поста');
         }
 
-        // Добавляем загрузку категорий
-        $categories = Category::getTree();
-
-        return view('posts.edit', compact('post', 'categories'));
-    }
-
-    public function update(Request $request, Post $post)
-    {
-        if ($post->user_id !== auth()->id()) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'category_id' => 'nullable|exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        return view('posts.edit', [
+            'post' => $this->getPostService()->getPostByCache($post->id),
+            'categories' => $this->getCategoryRepository()->getAllChildren()
         ]);
-
-        $imagePath = $post->image;
-        if ($request->hasFile('image')) {
-            // Удаляем старое изображение
-            if ($post->image) {
-                Storage::disk('public')->delete($post->image);
-            }
-            $imagePath = $request->file('image')->store('posts', 'public');
-        }
-
-        $post->update([
-            'title' => $validated['title'],
-            'content' => $validated['content'],
-            'category_id' => $validated['category_id'],
-            'image' => $imagePath
-        ]);
-        Log::info('Post update attempt', ['post_id' => $post->id, 'user_id' => auth()->id()]);
-        return redirect()->route('posts.index')->with('success', 'Пост обновлен успешно!');
     }
-    public function show(Post $post)
+
+    public function update(PostStoreRequest $request, Post $post): RedirectResponse
     {
-        $post->load('user');
-        return view('posts.show', compact('post'));
-    }
-    public function destroy(Post $post)
-    {
-        if ($post->user_id !== auth()->id()) {
-            abort(403);
-        }
-        Log::info('Post deletion attempt', ['post_id' => $post->id, 'user_id' => auth()->id()]);
-        // Удаляем изображение
-        if ($post->image) {
-            Storage::disk('public')->delete($post->image);
+        // Проверка прав
+        if ($post->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
+            abort(403, 'У вас нет прав для обновления этого поста');
         }
 
-        $post->delete();
-        Log::info('Post deleted', ['post_id' => $post->id, 'user_id' => auth()->id()]);
-        return redirect()->route('posts.index')->with('success', 'Пост удален успешно!');
+        $this->getPostRepository()->update($post, $request);
+
+        return redirect()
+            ->route('posts.index')
+            ->with('success', 'Пост успешно обновлен!');
+    }
+
+    public function destroy(Post $post): RedirectResponse
+    {
+        // Проверка прав
+        if ($post->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
+            abort(403, 'У вас нет прав для удаления этого поста');
+        }
+
+        $this->getPostRepository()->destroy($post);
+
+        return redirect()
+            ->route('posts.index')
+            ->with('success', 'Пост успешно удален!');
     }
 }
