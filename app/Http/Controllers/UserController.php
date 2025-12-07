@@ -14,7 +14,6 @@ class UserController extends Controller
 {
     public function index()
     {
-        // Проверяем авторизацию и права админа в методе
         if (!Auth::check() || !Auth::user()->isAdmin()) {
             abort(403, 'Требуются права администратора');
         }
@@ -68,11 +67,9 @@ class UserController extends Controller
             $updateData['password'] = Hash::make($request->password);
         }
 
-        // Обновляем профиль
         if ($user->profile) {
             $profileData = ['bio' => $request->bio ?? null];
 
-            // Обработка аватарки
             if ($request->hasFile('avatar')) {
                 if ($user->profile->avatar) {
                     Storage::disk('public')->delete($user->profile->avatar);
@@ -94,7 +91,6 @@ class UserController extends Controller
 
     public function updateRole(Request $request, User $user)
     {
-        // Дополнительная проверка (middleware уже проверил, но на всякий случай)
         if (!Auth::user()->isAdmin()) {
             abort(403, 'Требуются права администратора');
         }

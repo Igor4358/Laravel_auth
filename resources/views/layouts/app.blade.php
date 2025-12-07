@@ -190,10 +190,11 @@
                     @if(auth()->user()->isAdmin())
                         <li><a href="{{ route('users.index') }}">Пользователи</a></li>
                         <li><a href="{{ route('dashboard') }}">Админка</a></li>
+                        <li><a href="{{ route('search') }}">Поиск</a></li>
                     @endif
                 @endauth
 
-                <li><a href="{{ route('search') }}">Поиск</a></li>
+
                 <li><a href="{{route('about')}}">О нас</a></li>
             </ul>
 

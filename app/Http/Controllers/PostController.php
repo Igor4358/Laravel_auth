@@ -19,9 +19,6 @@ class PostController extends Controller
     private CategoryRepository $categoryRepository;
     private PostService $postService;
 
-    // Убираем конструктор с dependency injection
-    // Вместо этого используем сервис контейнер Laravel
-
     private function getPostRepository(): PostRepository
     {
         if (!isset($this->postRepository)) {
@@ -81,7 +78,6 @@ class PostController extends Controller
 
     public function edit(Post $post): View
     {
-        // Проверка прав
         if ($post->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'У вас нет прав для редактирования этого поста');
         }
@@ -94,7 +90,6 @@ class PostController extends Controller
 
     public function update(PostStoreRequest $request, Post $post): RedirectResponse
     {
-        // Проверка прав
         if ($post->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'У вас нет прав для обновления этого поста');
         }
@@ -108,7 +103,6 @@ class PostController extends Controller
 
     public function destroy(Post $post): RedirectResponse
     {
-        // Проверка прав
         if ($post->user_id !== auth()->id() && !auth()->user()->isAdmin()) {
             abort(403, 'У вас нет прав для удаления этого поста');
         }

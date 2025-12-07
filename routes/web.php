@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
     // Редактирование профиля
     Route::get('/profile/edit', [UserController::class, 'profile'])->name('user.profile');
+
     Route::post('/profile/update', [UserController::class, 'updateProfile'])->name('user.updateProfile');
     Route::post('/profile/remove-avatar', [UserController::class, 'removeAvatar'])->name('user.removeAvatar');
 });
